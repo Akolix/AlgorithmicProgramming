@@ -148,7 +148,18 @@ public class MainWindow extends JFrame {
             }
 
             currentMovies = loaded;
-            loadDataset(Math.min(currentDatasetSize, loaded.size()));
+            titleBar.setMaxDatasetSize(loaded.size());
+
+            int currentSliderValue = titleBar.getCurrentSize();
+            int sizeToLoad = Math.min(currentSliderValue, loaded.size());
+
+            if (currentSliderValue > loaded.size()) {
+                titleBar.setCurrentSize(loaded.size());
+                sizeToLoad = loaded.size();
+                currentDatasetSize = loaded.size();
+            }
+
+            loadDataset(sizeToLoad);
 
             tablePanel.log("Loaded CSV: " + file.getName());
             statusBar.setStatus("CSV dataset loaded (" + loaded.size() + " movies)", SUCCESS);
@@ -157,7 +168,9 @@ public class MainWindow extends JFrame {
 
     private void resetToDefaultDataset() {
         currentMovies = null;
-        loadDataset(currentDatasetSize);
+        titleBar.setMaxDatasetSize(50);
+        titleBar.setCurrentSize(50);
+        loadDataset(50);
 
         tablePanel.log("Reset to built-in dataset");
         statusBar.setStatus("Using default movie dataset", TEXT_MAIN);

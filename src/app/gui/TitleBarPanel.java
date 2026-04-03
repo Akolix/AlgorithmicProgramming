@@ -7,25 +7,18 @@ import java.util.function.IntConsumer;
 
 import static app.gui.UIFactory.*;
 
-/**
- * Top bar containing the application title, subtitle,
- * and the dataset-size slider with an Apply button.
- */
 public class TitleBarPanel extends JPanel {
 
     private final JSlider datasetSlider;
     private final JLabel  sliderValueLabel;
 
-    /**
-     * @param onApply Called with the selected dataset size when "Apply" is clicked.
-     */
     public TitleBarPanel(IntConsumer onApply, Runnable onUpload) {
         setLayout(new BorderLayout(16, 0));
         setBackground(BG_PANEL);
         setBorder(new EmptyBorder(14, 20, 14, 20));
 
         // Left: title + subtitle
-        JLabel title = styledLabel("🎬  Dataset & Algorithm Explorer", FONT_TITLE, ACCENT);
+        JLabel title = styledLabel("Dataset & Algorithm Explorer", FONT_TITLE, ACCENT);
         JLabel sub   = styledLabel(
                 "Movies Dataset  ·  3 Data Structures  ·  2 Search Algorithms  ·  3 Sort Algorithms",
                 FONT_BODY, TEXT_DIM);
@@ -63,5 +56,47 @@ public class TitleBarPanel extends JPanel {
 
         add(left,        BorderLayout.WEST);
         add(sliderPanel, BorderLayout.EAST);
+    }
+
+    /**
+     * Updates the slider's maximum value and adjusts current value if needed.
+     * @param max New maximum dataset size
+     */
+    public void setMaxDatasetSize(int max) {
+        int currentValue = datasetSlider.getValue();
+        datasetSlider.setMaximum(max);
+
+        // Adjust tick spacing based on range
+        if (max <= 100) {
+            datasetSlider.setMajorTickSpacing(20);
+        } else if (max <= 500) {
+            datasetSlider.setMajorTickSpacing(100);
+        } else {
+            datasetSlider.setMajorTickSpacing(200);
+        }
+
+        // If current value exceeds new max, clamp it
+        if (currentValue > max) {
+            datasetSlider.setValue(max);
+            sliderValueLabel.setText(max + " movies");
+        }
+    }
+
+    /**
+     * Sets the current slider value without triggering the change listener's text update
+     * (though the listener will update it anyway, this is fine).
+     * @param size New dataset size to display
+     */
+    public void setCurrentSize(int size) {
+        datasetSlider.setValue(size);
+        sliderValueLabel.setText(size + " movies");
+    }
+
+    /**
+     * Gets the current slider value.
+     * @return Current dataset size
+     */
+    public int getCurrentSize() {
+        return datasetSlider.getValue();
     }
 }
