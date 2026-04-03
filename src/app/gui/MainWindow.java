@@ -1,6 +1,7 @@
 package app.gui;
 
 import app.dataset.Movie;
+import app.dataset.MovieCSVLoader;
 import app.dataset.MovieDataset;
 import app.datastructures.CustomArrayList;
 import app.datastructures.CustomBinarySearchTree;
@@ -10,6 +11,7 @@ import app.interfaces.Sortable;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.File;
 import java.util.List;
 
 import static app.gui.UIFactory.*;
@@ -40,6 +42,7 @@ public class MainWindow extends JFrame {
     private final TablePanel    tablePanel;
     private final ControlPanel  controls;
     private final StatusBar     statusBar;
+    private List<Movie> currentMovies = null;
 
     private int currentDatasetSize = 50;
 
@@ -51,7 +54,7 @@ public class MainWindow extends JFrame {
         applyDarkLookAndFeel();
 
         // Build panels
-        titleBar   = new TitleBarPanel(this::loadDataset);
+        titleBar   = new TitleBarPanel(this::loadDataset,this::uploadCSV);
         tablePanel = new TablePanel();
         controls   = new ControlPanel();
         statusBar  = new StatusBar();
@@ -101,7 +104,15 @@ public class MainWindow extends JFrame {
      * Called on startup and whenever the slider Apply button is clicked.
      */
     private void loadDataset(int count) {
-        List<Movie> movies = MovieDataset.getSubset(count);
+        List<Movie> movies;
+
+        if (currentMovies != null) {
+            // Use CSV dataset
+            movies = currentMovies.subList(0, Math.min(count, currentMovies.size()));
+        } else {
+            // Use built-in dataset
+            movies = MovieDataset.getSubset(count);
+        }
 
         arrayList.clear();
         linkedList.clear();
@@ -115,8 +126,41 @@ public class MainWindow extends JFrame {
 
         currentDatasetSize = count;
         showAll();
-        tablePanel.log("✔ Loaded " + count + " movies into all 3 data structures.");
-        statusBar.setStatus("Dataset loaded: " + count + " movies.", TEXT_MAIN);
+        tablePanel.log("Loaded " + movies.size() + " movies.");
+        statusBar.setStatus("Dataset loaded: " + movies.size() + " movies.", TEXT_MAIN);
+    }
+
+    /**
+     * Loads CSV dataset
+     */
+    private void uploadCSV() {
+        JFileChooser chooser = new JFileChooser();
+        int result = chooser.showOpenDialog(this);
+
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File file = chooser.getSelectedFile();
+
+            List<Movie> loaded = MovieCSVLoader.loadFromCSV(file);
+
+            if (loaded.isEmpty()) {
+                warn("CSV file is empty or invalid.");
+                return;
+            }
+
+            currentMovies = loaded;
+            loadDataset(Math.min(currentDatasetSize, loaded.size()));
+
+            tablePanel.log("Loaded CSV: " + file.getName());
+            statusBar.setStatus("CSV dataset loaded (" + loaded.size() + " movies)", SUCCESS);
+        }
+    }
+
+    private void resetToDefaultDataset() {
+        currentMovies = null;
+        loadDataset(currentDatasetSize);
+
+        tablePanel.log("Reset to built-in dataset");
+        statusBar.setStatus("Using default movie dataset", TEXT_MAIN);
     }
 
     /**

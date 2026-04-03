@@ -19,7 +19,7 @@ public class TitleBarPanel extends JPanel {
     /**
      * @param onApply Called with the selected dataset size when "Apply" is clicked.
      */
-    public TitleBarPanel(IntConsumer onApply) {
+    public TitleBarPanel(IntConsumer onApply, Runnable onUpload) {
         setLayout(new BorderLayout(16, 0));
         setBackground(BG_PANEL);
         setBorder(new EmptyBorder(14, 20, 14, 20));
@@ -34,6 +34,9 @@ public class TitleBarPanel extends JPanel {
         left.setOpaque(false);
         left.add(title);
         left.add(sub);
+
+        JButton uploadBtn = accentButton("Upload CSV");
+        uploadBtn.addActionListener(e -> onUpload.run());
 
         // Right: slider + apply button
         datasetSlider    = new JSlider(5, 50, 50);
@@ -56,6 +59,7 @@ public class TitleBarPanel extends JPanel {
         sliderPanel.add(datasetSlider);
         sliderPanel.add(sliderValueLabel);
         sliderPanel.add(applyBtn);
+        sliderPanel.add(uploadBtn);
 
         add(left,        BorderLayout.WEST);
         add(sliderPanel, BorderLayout.EAST);
