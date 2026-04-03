@@ -7,6 +7,19 @@ Java's standard collection classes.
 
 ---
 
+## How to Run
+
+**Requirements:** Java Development Kit (JDK) 11 or higher.
+
+1. Open IntelliJ IDEA and select **File > Open**, then choose the project folder.
+2. Right-click the `src` folder and select **Mark Directory as > Sources Root**
+   if it is not already marked.
+3. Open `src/Main.java` and click the green Run button, or right-click and
+   select **Run 'Main'**.
+4. Use the built-in 50 movies or the csv file found in the dataset folder and adjust the slider on how many entities you want to search in.
+
+---
+
 ## Dataset
 
 The application uses a built-in dataset of 50 movies defined in
@@ -168,14 +181,3 @@ The slider in the title bar controls how many movies are loaded into all
 three data structures simultaneously, allowing observation of how algorithm
 performance scales with input size.
 
----
-
-## How to Run
-
-**Requirements:** Java Development Kit (JDK) 11 or higher.
-
-1. Open IntelliJ IDEA and select **File > Open**, then choose the project folder.
-2. Right-click the `src` folder and select **Mark Directory as > Sources Root**
-   if it is not already marked.
-3. Open `src/Main.java` and click the green Run button, or right-click and
-   select **Run 'Main'**.
