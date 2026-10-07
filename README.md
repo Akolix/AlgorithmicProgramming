@@ -27,8 +27,7 @@ for the functional interfaces `Comparator` and `Predicate`.
 
 ## Dataset
 
-The application uses the **Video Game Sales** dataset (`vgsales.csv`, from
-Kaggle) located in `src/app/dataset/`. It contains 16,598 games. No network
+The application uses the **Video Game Sales** dataset located in `src/app/dataset/`. It contains 16,598 games. No network
 connection is required. The slider in the application header loads the first
 *n* rows into all three data structures.
 
