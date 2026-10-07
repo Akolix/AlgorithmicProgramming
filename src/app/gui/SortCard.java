@@ -23,7 +23,8 @@ public class SortCard extends JPanel {
 
         JPanel card = card("Sort Algorithms");
 
-        fieldCombo     = styledCombo(new String[]{"Title", "Year", "Rating", "BoxOffice"});
+        fieldCombo     = styledCombo(new String[]{"Name", "Platform", "Year", "Genre", "Publisher",
+                "Global Sales", "NA Sales", "EU Sales", "JP Sales"});
         directionCombo = styledCombo(new String[]{"Ascending ↑", "Descending ↓"});
 
         JPanel row1 = row();
@@ -55,7 +56,7 @@ public class SortCard extends JPanel {
         add(card);
     }
 
-    /** Returns the selected sort field in lowercase (e.g. "title", "rating"). */
+    /** Returns the selected sort field in lowercase (e.g. "name", "global sales"). */
     public String getSortField() {
         return ((String) fieldCombo.getSelectedItem()).toLowerCase();
     }

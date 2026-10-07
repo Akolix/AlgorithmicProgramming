@@ -1,6 +1,6 @@
 package app.gui;
 
-import app.dataset.Movie;
+import app.dataset.VideoGame;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -12,7 +12,7 @@ import static app.gui.UIFactory.*;
 
 /**
  * Left-side panel containing:
- *   - A styled JTable showing movie results
+ *   - A styled JTable showing video game results
  *   - A read-only log area showing each algorithm execution with its timing
  */
 public class TablePanel extends JPanel {
@@ -26,7 +26,7 @@ public class TablePanel extends JPanel {
         setBorder(new EmptyBorder(12, 14, 8, 8));
 
         // ── Table ──────────────────────────────────────────────────────────
-        String[] columns = {"#", "Title", "Year", "Genre", "Rating ★", "Box Office ($M)"};
+        String[] columns = {"#", "Name", "Platform", "Year", "Genre", "Publisher", "NA (M)", "EU (M)", "JP (M)", "Global (M)"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
@@ -56,23 +56,27 @@ public class TablePanel extends JPanel {
         logPanel.add(styledLabel("Execution Log", FONT_HEADER, TEXT_DIM), BorderLayout.NORTH);
         logPanel.add(logScroll, BorderLayout.CENTER);
 
-        add(styledLabel("Movie Results", FONT_HEADER, ACCENT2), BorderLayout.NORTH);
+        add(styledLabel("Game Results", FONT_HEADER, ACCENT2), BorderLayout.NORTH);
         add(tableScroll, BorderLayout.CENTER);
         add(logPanel,    BorderLayout.SOUTH);
     }
 
-    /** Replaces table contents with the given movie list. */
-    public void populate(List<Movie> movies) {
+    /** Replaces table contents with the given game list (sales are in millions of copies). */
+    public void populate(List<VideoGame> games) {
         tableModel.setRowCount(0);
         int i = 1;
-        for (Movie m : movies) {
+        for (VideoGame g : games) {
             tableModel.addRow(new Object[]{
                     i++,
-                    m.getTitle(),
-                    m.getYear(),
-                    m.getGenre(),
-                    String.format("%.1f", m.getRating()),
-                    String.format("$%.0f M", m.getBoxOffice())
+                    g.getName(),
+                    g.getPlatform(),
+                    g.getYear() == VideoGame.UNKNOWN_YEAR ? "N/A" : String.valueOf(g.getYear()),
+                    g.getGenre(),
+                    g.getPublisher(),
+                    String.format("%.2f", g.getNaSales()),
+                    String.format("%.2f", g.getEuSales()),
+                    String.format("%.2f", g.getJpSales()),
+                    String.format("%.2f", g.getGlobalSales())
             });
         }
     }
@@ -102,7 +106,7 @@ public class TablePanel extends JPanel {
         header.setFont(FONT_HEADER);
         header.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, ACCENT));
 
-        int[] widths = {35, 260, 55, 100, 70, 120};
+        int[] widths = {40, 220, 60, 50, 90, 120, 55, 55, 55, 70};
         for (int i = 0; i < widths.length; i++)
             table.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
 

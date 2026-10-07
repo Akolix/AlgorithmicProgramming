@@ -6,7 +6,7 @@ import static app.gui.UIFactory.*;
 
 /**
  * Control card with utility buttons:
- * View All Movies (show full current structure) and Reset Dataset (reload from scratch).
+ * View All Games (show full current structure) and Reset Dataset (reload from scratch).
  */
 public class ViewCard extends JPanel {
 
@@ -19,7 +19,7 @@ public class ViewCard extends JPanel {
 
         JPanel card = card("View / Reset");
 
-        viewAllBtn = accentButton("View All Movies");
+        viewAllBtn = accentButton("View All Games");
         resetBtn   = accentButton("Reset Dataset");
 
         JPanel btnRow = row();

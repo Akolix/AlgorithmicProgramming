@@ -1,8 +1,8 @@
 package app.gui;
 
-import app.dataset.Movie;
-import app.dataset.MovieCSVLoader;
-import app.dataset.MovieDataset;
+import app.dataset.GameCSVLoader;
+import app.dataset.GameQueries;
+import app.dataset.VideoGame;
 import app.datastructures.CustomArrayList;
 import app.datastructures.CustomBinarySearchTree;
 import app.datastructures.CustomLinkedList;
@@ -12,6 +12,7 @@ import app.interfaces.Sortable;
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
+import java.util.Comparator;
 import java.util.List;
 
 import static app.gui.UIFactory.*;
@@ -33,21 +34,24 @@ import static app.gui.UIFactory.*;
 public class MainWindow extends JFrame {
 
     // ── Data structures ────────────────────────────────────────────────────
-    private final CustomArrayList        arrayList  = new CustomArrayList();
-    private final CustomLinkedList       linkedList = new CustomLinkedList();
-    private final CustomBinarySearchTree bst        = new CustomBinarySearchTree();
+    private final CustomArrayList<VideoGame>        arrayList  = new CustomArrayList<>();
+    private final CustomLinkedList<VideoGame>       linkedList = new CustomLinkedList<>();
+    private final CustomBinarySearchTree<VideoGame> bst        = new CustomBinarySearchTree<>(GameQueries.BY_NAME);
 
     // ── Panels ─────────────────────────────────────────────────────────────
     private final TitleBarPanel titleBar;
     private final TablePanel    tablePanel;
     private final ControlPanel  controls;
     private final StatusBar     statusBar;
-    private List<Movie> currentMovies = null;
 
-    private int currentDatasetSize = 50;
+    /** Every row of the loaded dataset (bundled vgsales.csv, or an uploaded CSV). */
+    private List<VideoGame> allGames = List.of();
+
+    private static final int DEFAULT_DATASET_SIZE = 1000;
+    private int currentDatasetSize = DEFAULT_DATASET_SIZE;
 
     public MainWindow() {
-        super("Dataset & Algorithm Explorer — Movies");
+        super("Dataset & Algorithm Explorer — Video Game Sales");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setPreferredSize(new Dimension(1200, 780));
 
@@ -77,8 +81,8 @@ public class MainWindow extends JFrame {
         pack();
         setLocationRelativeTo(null);
 
-        // Load full dataset on startup
-        loadDataset(50);
+        // Load the bundled dataset (vgsales.csv) on startup
+        useDefaultDataset();
 
         setVisible(true);
     }
@@ -104,30 +108,22 @@ public class MainWindow extends JFrame {
      * Called on startup and whenever the slider Apply button is clicked.
      */
     private void loadDataset(int count) {
-        List<Movie> movies;
-
-        if (currentMovies != null) {
-            // Use CSV dataset
-            movies = currentMovies.subList(0, Math.min(count, currentMovies.size()));
-        } else {
-            // Use built-in dataset
-            movies = MovieDataset.getSubset(count);
-        }
+        List<VideoGame> games = allGames.subList(0, Math.min(count, allGames.size()));
 
         arrayList.clear();
         linkedList.clear();
-        bst.clear();
+        bst.reset(GameQueries.BY_NAME);   // back to the default ordering
 
-        for (Movie m : movies) {
-            arrayList.add(m);
-            linkedList.add(m);
-            bst.insert(m);
+        for (VideoGame g : games) {
+            arrayList.add(g);
+            linkedList.add(g);
+            bst.insert(g);
         }
 
         currentDatasetSize = count;
         showAll();
-        tablePanel.log("Loaded " + movies.size() + " movies.");
-        statusBar.setStatus("Dataset loaded: " + movies.size() + " movies.", TEXT_MAIN);
+        tablePanel.log("Loaded " + games.size() + " games.");
+        statusBar.setStatus("Dataset loaded: " + games.size() + " games.", TEXT_MAIN);
     }
 
     /**
@@ -140,14 +136,14 @@ public class MainWindow extends JFrame {
         if (result == JFileChooser.APPROVE_OPTION) {
             File file = chooser.getSelectedFile();
 
-            List<Movie> loaded = MovieCSVLoader.loadFromCSV(file);
+            List<VideoGame> loaded = GameCSVLoader.loadFromCSV(file);
 
             if (loaded.isEmpty()) {
                 warn("CSV file is empty or invalid.");
                 return;
             }
 
-            currentMovies = loaded;
+            allGames = loaded;
             titleBar.setMaxDatasetSize(loaded.size());
 
             int currentSliderValue = titleBar.getCurrentSize();
@@ -162,30 +158,34 @@ public class MainWindow extends JFrame {
             loadDataset(sizeToLoad);
 
             tablePanel.log("Loaded CSV: " + file.getName());
-            statusBar.setStatus("CSV dataset loaded (" + loaded.size() + " movies)", SUCCESS);
+            statusBar.setStatus("CSV dataset loaded (" + loaded.size() + " games)", SUCCESS);
         }
     }
 
-    private void resetToDefaultDataset() {
-        currentMovies = null;
-        titleBar.setMaxDatasetSize(50);
-        titleBar.setCurrentSize(50);
-        loadDataset(50);
-
-        tablePanel.log("Reset to built-in dataset");
-        statusBar.setStatus("Using default movie dataset", TEXT_MAIN);
+    /** Loads the bundled vgsales.csv and shows the first DEFAULT_DATASET_SIZE rows. */
+    private void useDefaultDataset() {
+        allGames = GameCSVLoader.loadDefault();
+        if (allGames.isEmpty()) {
+            warn("Could not load the bundled vgsales.csv.\nUse \"Upload CSV\" to choose the file.");
+            return;
+        }
+        int size = Math.min(DEFAULT_DATASET_SIZE, allGames.size());
+        titleBar.setMaxDatasetSize(allGames.size());
+        titleBar.setCurrentSize(size);
+        loadDataset(size);
+        tablePanel.log("Loaded bundled dataset: vgsales.csv (" + allGames.size() + " rows available)");
     }
 
     /**
      * LINEAR SEARCH — O(n)
-     * Searches by title substring or genre on the currently selected data structure.
+     * Searches by name, platform, genre or publisher on the currently selected data structure.
      */
     private void runLinearSearch() {
         String query = controls.searchCard.getQuery();
         if (query.isEmpty()) { warn("Please enter a search term."); return; }
 
         long start      = System.nanoTime();
-        List<Movie> results = getSearchable().linearSearch(query);
+        List<VideoGame> results = getSearchable().linearSearch(GameQueries.matching(query));
         String time     = formatNano(System.nanoTime() - start);
 
         tablePanel.populate(results);
@@ -198,56 +198,48 @@ public class MainWindow extends JFrame {
 
     /**
      * BINARY SEARCH — O(log n)
-     * Requires sorted data — performs a merge sort by title first,
-     * then searches for an exact title match.
-     * Uses linear search first to resolve a partial query to a full title,
-     * so the user does not need to type the complete title exactly.
+     * Requires sorted data — performs a merge sort by name first,
+     * then searches for an exact match.
+     * Uses linear search first to resolve a partial query to a full game,
+     * so the user does not need to type the complete name exactly.
      */
     private void runBinarySearch() {
         String query = controls.searchCard.getQuery();
-        if (query.isEmpty()) { warn("Please enter a movie title to search for."); return; }
+        if (query.isEmpty()) { warn("Please enter a game name to search for."); return; }
 
-        // Binary search finds one movie by title — it cannot search by genre
-        String[] genres = {"Action", "Drama", "Sci-Fi", "Comedy", "Horror",
-                "Adventure", "Thriller", "Animation", "Romance"};
-        for (String genre : genres) {
-            if (query.equalsIgnoreCase(genre)) {
-                warn("Binary Search finds one movie by title.\n"
-                        + "Use Linear Search to search by genre.");
-                return;
-            }
-        }
+        // Sort by name so binary search works correctly
+        getSortable().mergeSort(GameQueries.BY_NAME);
 
-        // Sort by title so binary search works correctly
-        getSortable().mergeSort("title", true);
-
-        // Use linear search to resolve the partial query to a full exact title
-        List<Movie> candidates = getSearchable().linearSearch(query);
+        // Binary search finds one game by name (it cannot search by genre, platform
+        // or publisher), so the partial query is resolved against names only.
+        List<VideoGame> candidates = getSearchable().linearSearch(GameQueries.nameContaining(query));
         if (candidates.isEmpty()) {
             tablePanel.populate(List.of());
             tablePanel.log("🔎 Binary Search [" + getDSName() + "]  query=\"" + query
-                    + "\"  →  NOT FOUND  (no candidates from linear pre-search)");
+                    + "\"  →  NOT FOUND  (no game name contains this text; "
+                    + "use Linear Search for genre, platform or publisher)");
             statusBar.setTiming("Binary Search", "—");
             statusBar.setStatus("Binary Search: no match found for \"" + query + "\"", WARNING);
             return;
         }
 
-        // Binary search using the first candidate's exact full title
-        String exactTitle = candidates.get(0).getTitle();
-        long start   = System.nanoTime();
-        Movie result = getSearchable().binarySearch(exactTitle);
+        // Binary search using the first candidate as the exact key
+        VideoGame key       = candidates.get(0);
+        String    exactName = key.getName();
+        long start       = System.nanoTime();
+        VideoGame result = getSearchable().binarySearch(key, GameQueries.BY_NAME);
         String time  = formatNano(System.nanoTime() - start);
 
         if (result != null) {
             tablePanel.populate(List.of(result));
-            statusBar.setStatus("Binary Search: found \"" + result.getTitle() + "\"", SUCCESS);
+            statusBar.setStatus("Binary Search: found \"" + result.getName() + "\" (" + result.getPlatform() + ")", SUCCESS);
         } else {
             tablePanel.populate(List.of());
             statusBar.setStatus("Binary Search: no exact match for \"" + query + "\"", WARNING);
         }
 
         tablePanel.log("🔎 Binary Search [" + getDSName() + "]  query=\"" + query
-                + "\"  →  exact title used: \"" + exactTitle + "\""
+                + "\"  →  exact name used: \"" + exactName + "\" (" + key.getPlatform() + ")"
                 + "  →  " + (result != null ? "FOUND" : "NOT FOUND") + "  (" + time + ")");
         statusBar.setTiming("Binary Search", time);
     }
@@ -259,13 +251,14 @@ public class MainWindow extends JFrame {
     private void runSort(String algorithm) {
         String  field = controls.sortCard.getSortField();
         boolean asc   = controls.sortCard.isAscending();
+        Comparator<VideoGame> comparator = GameQueries.comparatorFor(field, asc);
 
         long start = System.nanoTime();
-        Sortable s = getSortable();
+        Sortable<VideoGame> s = getSortable();
         switch (algorithm) {
-            case "bubble":    s.bubbleSort(field, asc);    break;
-            case "merge":     s.mergeSort(field, asc);     break;
-            case "selection": s.selectionSort(field, asc); break;
+            case "bubble":    s.bubbleSort(comparator);    break;
+            case "merge":     s.mergeSort(comparator);     break;
+            case "selection": s.selectionSort(comparator); break;
         }
         String time = formatNano(System.nanoTime() - start);
 
@@ -282,17 +275,17 @@ public class MainWindow extends JFrame {
                 + field + " " + dir, SUCCESS);
     }
 
-    /** Shows all movies currently in the active data structure. */
+    /** Shows all games currently in the active data structure. */
     private void showAll() {
-        List<Movie> all = getSortable().getAllMovies();
+        List<VideoGame> all = getSortable().getAll();
         tablePanel.populate(all);
         statusBar.setStatus("Showing all " + all.size()
-                + " movies from " + getDSName(), TEXT_MAIN);
+                + " games from " + getDSName(), TEXT_MAIN);
     }
 
     // ── Data structure routing ─────────────────────────────────────────────
 
-    private Searchable getSearchable() {
+    private Searchable<VideoGame> getSearchable() {
         switch (controls.dataStructureCard.getSelectedIndex()) {
             case 1:  return linkedList;
             case 2:  return bst;
@@ -300,7 +293,7 @@ public class MainWindow extends JFrame {
         }
     }
 
-    private Sortable getSortable() {
+    private Sortable<VideoGame> getSortable() {
         switch (controls.dataStructureCard.getSelectedIndex()) {
             case 1:  return linkedList;
             case 2:  return bst;

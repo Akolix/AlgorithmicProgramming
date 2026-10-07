@@ -15,7 +15,7 @@ import static app.gui.UIFactory.*;
  */
 public class SearchCard extends JPanel {
 
-    private static final String PLACEHOLDER = "e.g. Dark Knight  or  Action";
+    private static final String PLACEHOLDER = "e.g. Mario Kart  or  Racing";
 
     private final JTextField searchField;
     private final JButton    linearBtn;
@@ -53,7 +53,7 @@ public class SearchCard extends JPanel {
 
         linearBtn = accentButton("Linear Search  O(n)");
         binaryBtn = accentButton("Binary Search  O(log n)");
-        binaryBtn.setToolTipText("Searches by exact title — data will be sorted first");
+        binaryBtn.setToolTipText("Searches by exact game name — data will be sorted first");
 
         JPanel btnRow = row();
         btnRow.add(linearBtn);

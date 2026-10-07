@@ -1,13 +1,14 @@
 package app.datastructures;
 
-import app.dataset.Movie;
 import app.interfaces.Searchable;
 import app.interfaces.Sortable;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.function.Predicate;
 
-public class CustomArrayList implements Searchable, Sortable {
+public class CustomArrayList<T> implements Searchable<T>, Sortable<T> {
 
     private static final int DEFAULT_CAPACITY = 16;
     private Object[] data;
@@ -18,14 +19,15 @@ public class CustomArrayList implements Searchable, Sortable {
         size = 0;
     }
 
-    public void add(Movie movie) {
+    public void add(T item) {
         ensureCapacity();
-        data[size++] = movie;
+        data[size++] = item;
     }
 
-    public Movie get(int i) {
+    @SuppressWarnings("unchecked")
+    public T get(int i) {
         if (i < 0 || i >= size) throw new IndexOutOfBoundsException("Index: " + i);
-        return (Movie) data[i];
+        return (T) data[i];
     }
 
     public int size() { return size; }
@@ -45,27 +47,22 @@ public class CustomArrayList implements Searchable, Sortable {
 
     // Linear search - O(n)
     @Override
-    public List<Movie> linearSearch(String query) {
-        List<Movie> results = new ArrayList<>();
-        String lowerQuery = query.toLowerCase();
+    public List<T> linearSearch(Predicate<T> matcher) {
+        List<T> results = new ArrayList<>();
         for (int i = 0; i < size; i++) {
-            Movie m = get(i);
-            if (m.getTitle().toLowerCase().contains(lowerQuery)
-                    || m.getGenre().toLowerCase().contains(lowerQuery)) {
-                results.add(m);
-            }
+            T item = get(i);
+            if (matcher.test(item)) results.add(item);
         }
         return results;
     }
 
-    // Binary search - O(log n)
+    // Binary search - O(log n). Data must be sorted with the same comparator.
     @Override
-    public Movie binarySearch(String title) {
+    public T binarySearch(T key, Comparator<T> comparator) {
         int low = 0, high = size - 1;
-        String target = title.toLowerCase();
         while (low <= high) {
             int mid = (low + high) / 2;
-            int cmp = get(mid).getTitle().toLowerCase().compareTo(target);
+            int cmp = comparator.compare(get(mid), key);
             if (cmp == 0)      return get(mid);
             else if (cmp < 0)  low = mid + 1;
             else               high = mid - 1;
@@ -75,10 +72,10 @@ public class CustomArrayList implements Searchable, Sortable {
 
     // BUBBLE SORT — O(n²)
     @Override
-    public void bubbleSort(String field, boolean ascending) {
+    public void bubbleSort(Comparator<T> comparator) {
         for (int i = 0; i < size - 1; i++) {
             for (int j = 0; j < size - 1 - i; j++) {
-                if (shouldSwap(get(j), get(j + 1), field, ascending)) {
+                if (comparator.compare(get(j), get(j + 1)) > 0) {
                     swap(j, j + 1);
                 }
             }
@@ -87,29 +84,31 @@ public class CustomArrayList implements Searchable, Sortable {
 
     // Merge sort — O(n log n)
     @Override
-    public void mergeSort(String field, boolean ascending) {
-        Movie[] arr = toMovieArray();
-        mergeSortHelper(arr, 0, arr.length - 1, field, ascending);
+    public void mergeSort(Comparator<T> comparator) {
+        T[] arr = toArray();
+        mergeSortHelper(arr, 0, arr.length - 1, comparator);
         for (int i = 0; i < size; i++) data[i] = arr[i];
     }
 
-    private void mergeSortHelper(Movie[] arr, int left, int right, String field, boolean asc) {
+    private void mergeSortHelper(T[] arr, int left, int right, Comparator<T> comparator) {
         if (left >= right) return;
         int mid = (left + right) / 2;
-        mergeSortHelper(arr, left, mid, field, asc);
-        mergeSortHelper(arr, mid + 1, right, field, asc);
-        merge(arr, left, mid, right, field, asc);
+        mergeSortHelper(arr, left, mid, comparator);
+        mergeSortHelper(arr, mid + 1, right, comparator);
+        merge(arr, left, mid, right, comparator);
     }
 
-    private void merge(Movie[] arr, int left, int mid, int right, String field, boolean asc) {
+    @SuppressWarnings("unchecked")
+    private void merge(T[] arr, int left, int mid, int right, Comparator<T> comparator) {
         int n1 = mid - left + 1, n2 = right - mid;
-        Movie[] L = new Movie[n1], R = new Movie[n2];
+        T[] L = (T[]) new Object[n1];
+        T[] R = (T[]) new Object[n2];
         System.arraycopy(arr, left, L, 0, n1);
         System.arraycopy(arr, mid + 1, R, 0, n2);
         int i = 0, j = 0, k = left;
         while (i < n1 && j < n2) {
-            if (!shouldSwap(L[i], R[j], field, asc)) arr[k++] = L[i++];
-            else                                      arr[k++] = R[j++];
+            if (comparator.compare(L[i], R[j]) <= 0) arr[k++] = L[i++];
+            else                                     arr[k++] = R[j++];
         }
         while (i < n1) arr[k++] = L[i++];
         while (j < n2) arr[k++] = R[j++];
@@ -117,11 +116,11 @@ public class CustomArrayList implements Searchable, Sortable {
 
     // Selection sort — O(n²)
     @Override
-    public void selectionSort(String field, boolean ascending) {
+    public void selectionSort(Comparator<T> comparator) {
         for (int i = 0; i < size - 1; i++) {
             int targetIdx = i;
             for (int j = i + 1; j < size; j++) {
-                if (shouldSwap(get(targetIdx), get(j), field, ascending)) {
+                if (comparator.compare(get(targetIdx), get(j)) > 0) {
                     targetIdx = j;
                 }
             }
@@ -130,8 +129,8 @@ public class CustomArrayList implements Searchable, Sortable {
     }
 
     @Override
-    public List<Movie> getAllMovies() {
-        List<Movie> result = new ArrayList<>();
+    public List<T> getAll() {
+        List<T> result = new ArrayList<>();
         for (int i = 0; i < size; i++) result.add(get(i));
         return result;
     }
@@ -140,19 +139,11 @@ public class CustomArrayList implements Searchable, Sortable {
         Object tmp = data[i]; data[i] = data[j]; data[j] = tmp;
     }
 
-    private boolean shouldSwap(Movie a, Movie b, String field, boolean ascending) {
-        int cmp;
-        switch (field.toLowerCase()) {
-            case "year":      cmp = Integer.compare(a.getYear(), b.getYear()); break;
-            case "rating":    cmp = Double.compare(a.getRating(), b.getRating()); break;
-            case "boxoffice": cmp = Double.compare(a.getBoxOffice(), b.getBoxOffice()); break;
-            default:          cmp = a.getTitle().compareToIgnoreCase(b.getTitle()); break;
-        }
-        return ascending ? cmp > 0 : cmp < 0;
-    }
-
-    private Movie[] toMovieArray() {
-        Movie[] arr = new Movie[size];
+    // Generic arrays cannot be created with "new T[n]", so an Object[] is cast.
+    // The array never leaves this class, so the cast is safe.
+    @SuppressWarnings("unchecked")
+    private T[] toArray() {
+        T[] arr = (T[]) new Object[size];
         for (int i = 0; i < size; i++) arr[i] = get(i);
         return arr;
     }

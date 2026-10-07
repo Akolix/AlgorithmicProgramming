@@ -20,7 +20,7 @@ public class TitleBarPanel extends JPanel {
         // Left: title + subtitle
         JLabel title = styledLabel("Dataset & Algorithm Explorer", FONT_TITLE, ACCENT);
         JLabel sub   = styledLabel(
-                "Movies Dataset  ·  3 Data Structures  ·  2 Search Algorithms  ·  3 Sort Algorithms",
+                "Video Game Sales Dataset  ·  3 Data Structures  ·  2 Search Algorithms  ·  3 Sort Algorithms",
                 FONT_BODY, TEXT_DIM);
 
         JPanel left = new JPanel(new GridLayout(2, 1, 0, 2));
@@ -32,16 +32,16 @@ public class TitleBarPanel extends JPanel {
         uploadBtn.addActionListener(e -> onUpload.run());
 
         // Right: slider + apply button
-        datasetSlider    = new JSlider(5, 50, 50);
-        sliderValueLabel = styledLabel("50 movies", FONT_STATUS, WARNING);
+        datasetSlider    = new JSlider(10, 1000, 1000);
+        sliderValueLabel = styledLabel("1000 games", FONT_STATUS, WARNING);
 
         datasetSlider.setOpaque(false);
         datasetSlider.setForeground(ACCENT);
-        datasetSlider.setMajorTickSpacing(15);
+        datasetSlider.setMajorTickSpacing(250);
         datasetSlider.setPaintTicks(true);
         datasetSlider.setPreferredSize(new Dimension(200, 40));
         datasetSlider.addChangeListener(e ->
-                sliderValueLabel.setText(datasetSlider.getValue() + " movies"));
+                sliderValueLabel.setText(datasetSlider.getValue() + " games"));
 
         JButton applyBtn = accentButton("Apply");
         applyBtn.addActionListener(e -> onApply.accept(datasetSlider.getValue()));
@@ -66,19 +66,13 @@ public class TitleBarPanel extends JPanel {
         int currentValue = datasetSlider.getValue();
         datasetSlider.setMaximum(max);
 
-        // Adjust tick spacing based on range
-        if (max <= 100) {
-            datasetSlider.setMajorTickSpacing(20);
-        } else if (max <= 500) {
-            datasetSlider.setMajorTickSpacing(100);
-        } else {
-            datasetSlider.setMajorTickSpacing(200);
-        }
+        // Four major ticks across the range, whatever the dataset size
+        datasetSlider.setMajorTickSpacing(Math.max(1, max / 4));
 
         // If current value exceeds new max, clamp it
         if (currentValue > max) {
             datasetSlider.setValue(max);
-            sliderValueLabel.setText(max + " movies");
+            sliderValueLabel.setText(max + " games");
         }
     }
 
@@ -89,7 +83,7 @@ public class TitleBarPanel extends JPanel {
      */
     public void setCurrentSize(int size) {
         datasetSlider.setValue(size);
-        sliderValueLabel.setText(size + " movies");
+        sliderValueLabel.setText(size + " games");
     }
 
     /**
